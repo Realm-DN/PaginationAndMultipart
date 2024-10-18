@@ -30,7 +30,7 @@ class FormVC: UIViewController {
     
     private var progressView: UIProgressView?
     private var alertController: UIAlertController?
-    
+    private var uploadTask: URLSessionUploadTask?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -142,7 +142,9 @@ extension FormVC : UITextFieldDelegate{
 extension FormVC {
     func showAlertWithProgress() {
         let alertController = UIAlertController(title: "Uploading...", message: "Progress: 0%", preferredStyle: .alert)
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { action in
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) {[weak self] action in
+            guard let self = self else {return}
+            self.uploadTask?.cancel()
         }
         alertController.addAction(cancelAction)
         let progressView = UIProgressView(progressViewStyle: .default)
@@ -195,7 +197,7 @@ extension FormVC: URLSessionTaskDelegate {
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         self.showAlertWithProgress()
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
-        let task = session.uploadTask(with: request, from: body) {[weak self] data, response, error in
+        self.uploadTask = session.uploadTask(with: request, from: body) {[weak self] data, response, error in
             guard let self = self else { return }
             if let error = error {
                 print("Error: \(error.localizedDescription)")
@@ -219,7 +221,7 @@ extension FormVC: URLSessionTaskDelegate {
             }
 
         }
-        task.resume()
+        self.uploadTask?.resume()
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
